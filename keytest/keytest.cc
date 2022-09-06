@@ -16,31 +16,14 @@ int main() {
     keypad(stdscr, TRUE);
 
     while (true) {
-        bool toBreak = false;
-        unsigned int a = getch();
+        int a = getch();
 
-        switch (a) {
-        case KEY_DOWN:
-            printw("DOWN ");
-            break;
-        case KEY_UP:
-            printw("UP ");
-            break;
-        case KEY_LEFT:
-            printw("LEFT ");
-            break;
-        case KEY_RIGHT:
-            printw("RIGHT ");
-            break;
-        case KEY_HOME:
-            toBreak = true;
-            break;
-        default:
+        if (a == KEY_HOME) {
             break;
         }
 
-        if (toBreak) {
-            break;
+        if (a != -1) {
+            mvprintw(0, 1, to_string(a).c_str());
         }
 
     }

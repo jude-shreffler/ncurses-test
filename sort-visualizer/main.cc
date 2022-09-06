@@ -16,9 +16,6 @@ int main() {
     refresh();
 
     SortPlane sort = SortPlane();
-    getch();
-    sort.random();
-    getch();
 
     endwin();
     return 0;
