@@ -14,6 +14,9 @@ class Raycaster {
     void redraw();
     bool input();
 
+    int getMap(int x, int y);
+    double degToRad(int i);
+
     WINDOW* window;
     int heights[80];
 
