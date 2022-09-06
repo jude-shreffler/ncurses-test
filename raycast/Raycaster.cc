@@ -23,18 +23,72 @@ void Raycaster::run() {
 
 void Raycaster::redraw() {
     double currentOffset = degToRad(-40);
-    double rayX, rayY;
+    double aTan = -1/tan(rot);
+    double nTan = -tan(rot);
+    double rayX, rayY, offsetX, offsetY;
+    int depthOfField, mapX, mapY;
 
     for (int i = 0; i < 80; i++) {
+        depthOfField = 0;
         /// horizontal lines
         if (rot < M_PI) { /// looking up
             rayY = int(posY + 1);
-            rayX = (rayY - posY) * atan(rot) + posX;
+            rayX = (rayY - posY) * aTan + posX;
+            offsetY = 1;
+            offsetX = -offsetY * aTan;
         } else if (rot > M_PI) { /// looking down
             rayY = int(posY);
+            rayX = (posY - rayY) * aTan + posX;
+            offsetY = -1;
+            offsetX = -offsetY * aTan;
+        } else if (fabs(rot - 0) < 0.001 || fabs(rot - M_PI) < 0.001) {
+            rayX = posX;
+            rayY = posY;
+            depthOfField = 8;
+        }
+
+        while (depthOfField < 8) {
+            mapX = int(posX);
+            mapY = int(posY);
+            if (getMap(mapX, mapY) == 1) {
+                depthOfField = 8;
+            } else {
+                rayX += offsetX;
+                rayY += offsetY;
+                depthOfField++;
+            }
         }
 
         /// vertical lines
+        if (rot < M_PI / 2 || rot > 3 * M_PI / 2) { /// looking right
+            rayX = int(posX + 1);
+            rayY = (rayX - posX) * nTan + posY;
+            offsetX = 1;
+            offsetY = -offsetX * nTan;
+        } else if (rot > M_PI / 2 && rot < 3 * M_PI / 2) { /// looking left
+            rayX = int(posX);
+            rayY = (posX - rayX) * nTan + posY;
+            offsetX = -1;
+            offsetY = -offsetX * nTan;
+        } else if (fabs(rot - M_PI / 2) < 0.001 || fabs(rot - 3 * M_PI / 2) < 0.001) {
+            rayX = posX;
+            rayY = posY;
+            depthOfField = 8;
+        }
+
+        while (depthOfField < 8) {
+            mapX = int(posX);
+            mapY = int(posY);
+            if (getMap(mapX, mapY) == 1) {
+                depthOfField = 8;
+            } else {
+                rayX += offsetX;
+                rayY += offsetY;
+                depthOfField++;
+            }
+        }
+
+        
 
         currentOffset += degToRad(1);
     }
