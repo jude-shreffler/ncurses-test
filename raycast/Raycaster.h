@@ -4,6 +4,7 @@
 #include <ncurses.h>
 #include <chrono>
 #include <math.h>
+#include <string>
 
 class Raycaster {
     public:
@@ -16,6 +17,7 @@ class Raycaster {
 
     int getMap(int x, int y);
     double degToRad(int i);
+    double distance(double x1, double x2, double y1, double y2);
 
     WINDOW* window;
     int heights[80];
@@ -23,16 +25,16 @@ class Raycaster {
     const double FPS = 60;
     const double SPEED = 2 / FPS;
     const double ANG_SPEED = 0.0174;
-    double posX = 4;
-    double posY = 2;
+    double posX = 4.1;
+    double posY = 2.1;
     double rot = 0;
     int map[8][8] = {{1, 1, 1, 1, 1, 1, 1, 1},
-                     {1, 0, 0, 0, 0, 0, 1, 1},
-                     {1, 0, 1, 0, 0, 0, 0, 1},
-                     {1, 0, 0, 1, 1, 0, 0, 1},
-                     {1, 0, 0, 1, 1, 0, 0, 1},
-                     {1, 0, 0, 0, 0, 1, 0, 1},
-                     {1, 1, 0, 0, 0, 0, 0, 1},
+                     {1, 0, 0, 0, 0, 0, 0, 1},
+                     {1, 0, 0, 0, 0, 0, 0, 1},
+                     {1, 0, 0, 0, 0, 0, 0, 1},
+                     {1, 0, 0, 0, 0, 0, 0, 1},
+                     {1, 0, 0, 0, 0, 0, 0, 1},
+                     {1, 0, 0, 0, 0, 0, 0, 1},
                      {1, 1, 1, 1, 1, 1, 1, 1}};
 
 };
