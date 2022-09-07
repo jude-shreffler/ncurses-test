@@ -17,6 +17,7 @@ Raycaster::Raycaster() {
 
     init_pair(1, COLOR_WHITE, COLOR_BLUE);
     init_pair(2, COLOR_WHITE, COLOR_GREEN);
+    init_pair(3, COLOR_YELLOW, COLOR_RED);
 
     //cd redraw();
     run();
@@ -86,7 +87,7 @@ void Raycaster::redraw() {
         while (depthOfField < 8) {
             mapX = int(rayX);
             mapY = int(rayY + (currentAngle < M_PI ? 0.1 : -0.1));
-            if (getMap(mapX, mapY) == 1) {
+            if (getMap(mapX, mapY) != 0) {
                 depthOfField = 8;
             } else {
                 rayX += offsetX;
@@ -94,6 +95,8 @@ void Raycaster::redraw() {
                 depthOfField++;
             }
         }
+
+        int mapTileH = getMap(mapX, mapY);
 
         double distanceToH = distance(posX, rayX, posY, rayY);
 
@@ -118,7 +121,7 @@ void Raycaster::redraw() {
         while (depthOfField < 8) {
             mapX = int(rayX + (currentAngle < M_PI / 2 || currentAngle > 3 * M_PI / 2 ? 0.1 : -0.1));
             mapY = int(rayY);
-            if (getMap(mapX, mapY) == 1) {
+            if (getMap(mapX, mapY) != 0) {
                 depthOfField = 8;
             } else {
                 rayX += offsetX;
@@ -127,16 +130,21 @@ void Raycaster::redraw() {
             }
         }
 
+        int mapTileV = getMap(mapX, mapY);
+
         double distanceToV = distance(posX, rayX, posY, rayY);
         
         // pick the shortest distance and normalize it
         double distance;
+        int mapTile;
         char toPrint;
         if (distanceToV < distanceToH) {
             distance = distanceToV;
+            mapTile = mapTileV;
             toPrint = '@';
         } else {
             distance = distanceToH;
+            mapTile = mapTileH;
             toPrint = '.';
         }
         distance = distance * cos(currentOffset);
@@ -144,9 +152,17 @@ void Raycaster::redraw() {
         heights[i] = roundDownToEven(heights[i]); // rounds numbers down to the next even number
 
         // draw the column onto the screen
+        if (mapTile == 2) {
+            wattron(window, COLOR_PAIR(3));
+        }
+
         int startY = (NUM_ROWS / 2) - (heights[i] / 2);
         for (int j = startY; j < heights[i] + startY; j++) {
             mvwaddch(window, j, i, toPrint);
+        }
+
+        if (mapTile == 2) {
+            wattroff(window, COLOR_PAIR(3));
         }
 
         // update your offset/angle
@@ -154,6 +170,7 @@ void Raycaster::redraw() {
         currentAngle = normalize(rot + currentOffset);
     }
 
+    
     // debug stuff
     mvwprintw(window, 0, NUM_COLUMNS, std::to_string(posX).c_str());
     mvwprintw(window, 1, NUM_COLUMNS, std::to_string(posY).c_str());
@@ -167,6 +184,7 @@ void Raycaster::redraw() {
             mvwaddch(window, cornerY + 7 - j, i + cornerX, getMap(i, j) + '0');
         }
     }
+    
 
     wrefresh(window);
 }
@@ -174,29 +192,39 @@ void Raycaster::redraw() {
 bool Raycaster::input() {
     int a = getch();
 
-    if (a == KEY_UP) {
+    if (a == 'w') {
         double tempX = posX + SPEED * cos(rot);
         double tempY = posY + SPEED * sin(rot);
         if (getMap(int(tempX), int(tempY)) == 0) {
             posX = tempX;
             posY = tempY;
         }
-    } else if (a == KEY_DOWN) {
+    } else if (a == 's') {
         double tempX = posX - SPEED * cos(rot);
         double tempY = posY - SPEED * sin(rot);
         if (getMap(int(tempX), int(tempY)) == 0) {
             posX = tempX;
             posY = tempY;
         }
-    } else if (a == KEY_LEFT) {
+    } else if (a == 'a') {
         rot += ANG_SPEED;
         if (rot >= 2 * M_PI) {
             rot -= 2 * M_PI;
         }
-    } else if (a == KEY_RIGHT) {
+    } else if (a == 'd') {
         rot -= ANG_SPEED;
         if (rot < 0) {
             rot += 2 * M_PI;
+        }
+    } else if  (a == 'e') {
+        for (int i = 0; i < MAP_WIDTH; i++) {
+            for (int j = 0; j < MAP_HEIGHT; j++) {
+                if (getMap(i, j) == 2) {
+                    if (distance(posX, i + 0.5, posY, j + 0.5) <= 1.5) {
+                        setMap(i, j, 0);
+                    }
+                }
+            }
         }
     } else if (a == KEY_DC) {
         return false;
@@ -206,11 +234,17 @@ bool Raycaster::input() {
 }
 
 int Raycaster::getMap(int x, int y) {
-    if (x >= 0 && y >= 0 && x < 8 && y < 8) {
-        return map[7 - y][x];
+    if (x >= 0 && y >= 0 && x < MAP_WIDTH && y < MAP_HEIGHT) {
+        return map[MAP_HEIGHT - 1 - y][x];
     }
     
     return -1;
+}
+
+void Raycaster::setMap(int x, int y, int a) {
+    if (x >= 0 && y >= 0 && x < MAP_WIDTH && y < MAP_HEIGHT) {
+        map[MAP_HEIGHT - 1 - y][x] = a;
+    }
 }
 
 double Raycaster::degToRad(double i) {
