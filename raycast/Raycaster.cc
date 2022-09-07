@@ -12,7 +12,7 @@ Raycaster::Raycaster() {
     intrflush(stdscr, FALSE);
     curs_set(0); // makes cursor invisible
 
-    window = newwin(24, 100, 0, 0);
+    window = newwin(NUM_ROWS, NUM_COLUMNS + 20, 0, 0);
     wrefresh(window);
 
     init_pair(1, COLOR_WHITE, COLOR_BLUE);
@@ -40,16 +40,16 @@ void Raycaster::run() {
 
 void Raycaster::redraw() {
     // draw background
-    for (int i = 0; i < 80; i++) {
-        for (int j = 0; j < 24; j++) {
+    for (int i = 0; i < NUM_COLUMNS; i++) {
+        for (int j = 0; j < NUM_ROWS; j++) {
             if (j == 0) {
                 wattron(window, COLOR_PAIR(1));
-            } else if (j == 12) {
+            } else if (j == NUM_ROWS / 2) {
                 wattroff(window, COLOR_PAIR(1));
                 wattron(window, COLOR_PAIR(2));
             }
             mvwaddch(window, j, i, ' ');
-            if (j == 23) {
+            if (j == NUM_ROWS - 1) {
                 wattroff(window, COLOR_PAIR(2));
             }
         }
@@ -61,7 +61,7 @@ void Raycaster::redraw() {
     int depthOfField, mapX, mapY;
 
     // get the heights of our bars
-    for (int i = 0; i < 80; i++) {
+    for (int i = 0; i < NUM_COLUMNS; i++) {
         double aTan = -1/tan(currentAngle);
         double nTan = -tan(currentAngle);
 
@@ -140,37 +140,28 @@ void Raycaster::redraw() {
             toPrint = '.';
         }
         distance = distance * cos(currentOffset);
-        heights[i] = int(24 / distance + 0.5);
+        heights[i] = int(NUM_ROWS / distance + 0.5);
         heights[i] = roundDownToEven(heights[i]); // rounds numbers down to the next even number
 
         // draw the column onto the screen
-        int startY = 12 - (heights[i] / 2);
+        int startY = (NUM_ROWS / 2) - (heights[i] / 2);
         for (int j = startY; j < heights[i] + startY; j++) {
             mvwaddch(window, j, i, toPrint);
         }
 
         // update your offset/angle
-        currentOffset -= degToRad(FOV/80);
+        currentOffset -= degToRad(FOV/NUM_COLUMNS);
         currentAngle = normalize(rot + currentOffset);
     }
-    /*
-    // draw the lines
-    for (int i = 0; i < 80; i++) {
-        int startY = 12 - (heights[i] / 2);
-        for (int j = startY; j < heights[i] + startY; j++) {
-            mvwaddch(window, j, i, '@');
-        }
-    }
-    */
 
     // debug stuff
-    mvwprintw(window, 0, 80, std::to_string(posX).c_str());
-    mvwprintw(window, 1, 80, std::to_string(posY).c_str());
-    mvwprintw(window, 2, 80, std::to_string(rot).c_str());
+    mvwprintw(window, 0, NUM_COLUMNS, std::to_string(posX).c_str());
+    mvwprintw(window, 1, NUM_COLUMNS, std::to_string(posY).c_str());
+    mvwprintw(window, 2, NUM_COLUMNS, std::to_string(rot).c_str());
 
     // the map
     int cornerY = 3;
-    int cornerX = 80;
+    int cornerX = NUM_COLUMNS;
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
             mvwaddch(window, cornerY + 7 - j, i + cornerX, getMap(i, j) + '0');
