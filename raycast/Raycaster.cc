@@ -7,7 +7,7 @@ Raycaster::Raycaster() {
     cbreak(); // makes the input one character at a time
     noecho(); // no echo
     keypad(stdscr, TRUE); // enables the keypad (arrow keys, f keys, etc)
-    timeout(500); // getch will timeout after x ms
+    timeout(5); // getch will timeout after x ms
     start_color(); // allows color
     intrflush(stdscr, FALSE);
     curs_set(0); // makes cursor invisible
@@ -134,7 +134,7 @@ void Raycaster::redraw() {
         }
 
         int mapTileV = getMap(mapX, mapY);
-
+        
         double distanceToV = distance(posX, rayX, posY, rayY);
         
         // pick the shortest distance and normalize it
@@ -177,103 +177,65 @@ void Raycaster::redraw() {
         currentAngle = normalize(rot + currentOffset);
     }
     
+    /////////////////////////////////////////////////////////////////////////////////////////
     // debug stuff
     mvwprintw(window, 0, NUM_COLUMNS, std::to_string(posX).c_str());
     mvwprintw(window, 1, NUM_COLUMNS, std::to_string(posY).c_str());
     mvwprintw(window, 2, NUM_COLUMNS, std::to_string(rot).c_str());
-
-    // the map
-    int cornerY = 3;
-    int cornerX = NUM_COLUMNS;
-    for (int i = 0; i < MAP_WIDTH; i++) {
-        for (int j = 0; j < MAP_HEIGHT; j++) {
-            mvwaddch(window, cornerY + MAP_HEIGHT - 1 - j, i + cornerX, getMap(i, j) + '0');
-        }
-    }
+    ///////////////////////////////////////////////////////////////////////////////////////////
 
     wrefresh(window);
 }
 
 bool Raycaster::input() {
-    flushinp();
     int a = getch();
 
     if (a == 'w') {
-        double tempX = posX + SPEED * cos(rot);
-        double tempY = posY + SPEED * sin(rot);
+        // checking to make sure this coordinate works
+        double tempX = posX + TOP_SPEED * cos(rot);
+        double tempY = posY + TOP_SPEED * sin(rot);
 
         // check up and down
-        if (getMap(int(posX), int(posY + 1)) != 0) { // up
-            if (tempY > int(posY) + 0.8) {
-                posY = int(posY) + 0.8;
-            } else {
-                posY = tempY;
-            }
-        } else if (getMap(int(posX), int(posY - 1)) != 0) { // down
-            if (tempY < int(posY) + 0.2) {
-                posY = int(posY) + 0.2;
-            } else {
-                posY = tempY;
-            }
+        if (tempY - int(tempY) > 0.8 && getMap(int(tempX), int(tempY + 1)) != 0) { // up
+            posY = int(tempY) + 0.8;
+        } else if (tempY - int(tempY) < 0.2 && getMap(int(tempX), int(tempY - 1)) != 0) { // down
+            posY = int(tempY) + 0.2;
+        } else {
+            posY = tempY;
         }
 
         // check left and right
-        if (getMap(int(posX - 1), int(posY)) != 0) { // left
-            if (tempX < int(posX) + 0.2) {
-                posX = int(posX) + 0.2;
-            } else {
-                posX = tempX;
-            }
-        } else if (getMap(int(posX + 1), int(posY)) != 0) { // right
-            if (tempX > int(posX) + 0.8) {
-                posX = int(posX) + 0.8;
-            } else {
-                posX = tempX;
-            }
-        }
-
-        // check corners
-        if (getMap(int(posX - 1), int(posY - 1)) != 0) { // lower left
-            if (tempX < int(posX) + 0.2 && tempY < int(posY) + 0.2) {
-                posX = int(posX) + 0.2;
-                posY = int(posY) + 0.2;
-            } else {
-                posX = tempX;
-                posY = tempY;
-            }
-        } else if (getMap(int(posX - 1), int(posY + 1)) != 0) { // upper left
-            if (tempX < int(posX) + 0.2 && tempY > int(posY) + 0.8) {
-                posX = int(posX) + 0.2;
-                posY = int(posY) + 0.8;
-            } else {
-                posX = tempX;
-                posY = tempY;
-            }
-        } else if (getMap(int(posX + 1), int(posY - 1)) != 0) { // lower right
-            if (tempX > int(posX) + 0.8 && tempY < int(posY) + 0.2) {
-                posX = int(posX) + 0.8;
-                posY = int(posY) + 0.2;
-            } else {
-                posX = tempX;
-                posY = tempY;
-            }
-        } else if (getMap(int(posX + 1), int(posY + 1)) != 0) { // upper right
-            if (tempX > int(posX) + 0.8 && tempY > int(posY) + 0.8) {
-                posX = int(posX) + 0.8;
-                posY = int(posY) + 0.8;
-            } else {
-                posX = tempX;
-                posY = tempY;
-            }
+        if (tempX - int(tempX) > 0.8 && getMap(int(tempX + 1), int(tempY)) != 0) { // right
+            posX = int(tempX) + 0.8;
+        } else if (tempX - int(tempX) < 0.2 && getMap(int(tempX - 1), int(tempY)) != 0) { // left
+            posX = int(tempX) + 0.2;
+        } else {
+            posX = tempX;
         }
 
     } else if (a == 's') {
-        double tempX = posX - SPEED * cos(rot);
-        double tempY = posY - SPEED * sin(rot);
-        if (getMap(int(tempX), int(tempY)) == 0) {
-            posX = tempX;
+        // checking to make sure this coordinate works
+        double tempX = posX - TOP_SPEED * cos(rot);
+        double tempY = posY - TOP_SPEED * sin(rot);
+
+        // check up and down
+        if (tempY - int(tempY) > 0.8 && getMap(int(tempX), int(tempY + 1)) != 0) { // up
+            posY = int(tempY) + 0.8;
+        } else if (tempY - int(tempY) < 0.2 && getMap(int(tempX), int(tempY - 1)) != 0) { // down
+            posY = int(tempY) + 0.2;
+        } else {
             posY = tempY;
         }
+
+        // check left and right
+        if (tempX - int(tempX) > 0.8 && getMap(int(tempX + 1), int(tempY)) != 0) { // right
+            posX = int(tempX) + 0.8;
+        } else if (tempX - int(tempX) < 0.2 && getMap(int(tempX - 1), int(tempY)) != 0) { // left
+            posX = int(tempX) + 0.2;
+        } else {
+            posX = tempX;
+        }
+
     } else if (a == 'a') {
         rot += ANG_SPEED;
         if (rot >= 2 * M_PI) {
@@ -320,9 +282,6 @@ double Raycaster::degToRad(double i) {
 }
 
 double Raycaster::distance(double x1, double x2, double y1, double y2) {
-    if (fabs(y2 - y1) < 0.001 && fabs(x2 - x1) < 0.001) {
-        return 100000000000;
-    }
     return sqrt(pow(y2 - y1, 2) + pow(x2 - x1, 2));
 }
 
