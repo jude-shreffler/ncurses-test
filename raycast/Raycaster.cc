@@ -7,7 +7,7 @@ Raycaster::Raycaster() {
     cbreak(); // makes the input one character at a time
     noecho(); // no echo
     keypad(stdscr, TRUE); // enables the keypad (arrow keys, f keys, etc)
-    timeout(5); // getch will timeout after x ms
+    timeout(500); // getch will timeout after x ms
     start_color(); // allows color
     intrflush(stdscr, FALSE);
     curs_set(0); // makes cursor invisible
@@ -17,7 +17,8 @@ Raycaster::Raycaster() {
 
     init_pair(1, COLOR_WHITE, COLOR_BLUE);
     init_pair(2, COLOR_WHITE, COLOR_GREEN);
-    init_pair(3, COLOR_YELLOW, COLOR_RED);
+    init_pair(DOOR_COLOR, COLOR_YELLOW, COLOR_RED);
+    init_pair(WALL_COLOR, COLOR_CYAN, COLOR_WHITE);
 
     //cd redraw();
     run();
@@ -33,6 +34,7 @@ void Raycaster::run() {
         if (now - lastRun >= std::chrono::milliseconds(int(1 / FPS) * 1000)) {
             toRun = input();
             redraw();
+            lastRun = std::chrono::steady_clock::now();
         }
     }
 
@@ -60,6 +62,7 @@ void Raycaster::redraw() {
     double currentAngle = normalize(rot + currentOffset);
     double rayX, rayY, offsetX, offsetY;
     int depthOfField, mapX, mapY;
+    int mapTileH, mapTileV, mapTile;
 
     // get the heights of our bars
     for (int i = 0; i < NUM_COLUMNS; i++) {
@@ -81,14 +84,14 @@ void Raycaster::redraw() {
         } else if (fabs(currentAngle - 0) < 0.001 || fabs(currentAngle - M_PI) < 0.001) {
             rayX = posX;
             rayY = posY;
-            depthOfField = 8;
+            depthOfField = MAP_HEIGHT;
         }
 
-        while (depthOfField < 8) {
+        while (depthOfField < MAP_HEIGHT) {
             mapX = int(rayX);
             mapY = int(rayY + (currentAngle < M_PI ? 0.1 : -0.1));
             if (getMap(mapX, mapY) != 0) {
-                depthOfField = 8;
+                depthOfField = MAP_HEIGHT;
             } else {
                 rayX += offsetX;
                 rayY += offsetY;
@@ -96,7 +99,7 @@ void Raycaster::redraw() {
             }
         }
 
-        int mapTileH = getMap(mapX, mapY);
+        mapTileH = getMap(mapX, mapY);
 
         double distanceToH = distance(posX, rayX, posY, rayY);
 
@@ -115,14 +118,14 @@ void Raycaster::redraw() {
         } else if (fabs(currentAngle - M_PI / 2) < 0.001 || fabs(currentAngle - 3 * M_PI / 2) < 0.001) {
             rayX = posX;
             rayY = posY;
-            depthOfField = 8;
+            depthOfField = MAP_HEIGHT;
         }
 
-        while (depthOfField < 8) {
+        while (depthOfField < MAP_HEIGHT) {
             mapX = int(rayX + (currentAngle < M_PI / 2 || currentAngle > 3 * M_PI / 2 ? 0.1 : -0.1));
             mapY = int(rayY);
             if (getMap(mapX, mapY) != 0) {
-                depthOfField = 8;
+                depthOfField = MAP_HEIGHT;
             } else {
                 rayX += offsetX;
                 rayY += offsetY;
@@ -145,7 +148,7 @@ void Raycaster::redraw() {
         } else {
             distance = distanceToH;
             mapTile = mapTileH;
-            toPrint = '.';
+            toPrint = ';';
         }
         distance = distance * cos(currentOffset);
         heights[i] = int(NUM_ROWS / distance + 0.5);
@@ -153,7 +156,9 @@ void Raycaster::redraw() {
 
         // draw the column onto the screen
         if (mapTile == 2) {
-            wattron(window, COLOR_PAIR(3));
+            wattron(window, COLOR_PAIR(DOOR_COLOR));
+        } else if (mapTile == 1) {
+            wattron(window, COLOR_PAIR(WALL_COLOR));
         }
 
         int startY = (NUM_ROWS / 2) - (heights[i] / 2);
@@ -162,14 +167,15 @@ void Raycaster::redraw() {
         }
 
         if (mapTile == 2) {
-            wattroff(window, COLOR_PAIR(3));
+            wattroff(window, COLOR_PAIR(DOOR_COLOR));
+        } else if (mapTile == 1) {
+            wattroff(window, COLOR_PAIR(WALL_COLOR));
         }
 
         // update your offset/angle
         currentOffset -= degToRad(FOV/NUM_COLUMNS);
         currentAngle = normalize(rot + currentOffset);
     }
-
     
     // debug stuff
     mvwprintw(window, 0, NUM_COLUMNS, std::to_string(posX).c_str());
@@ -179,26 +185,88 @@ void Raycaster::redraw() {
     // the map
     int cornerY = 3;
     int cornerX = NUM_COLUMNS;
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
-            mvwaddch(window, cornerY + 7 - j, i + cornerX, getMap(i, j) + '0');
+    for (int i = 0; i < MAP_WIDTH; i++) {
+        for (int j = 0; j < MAP_HEIGHT; j++) {
+            mvwaddch(window, cornerY + MAP_HEIGHT - 1 - j, i + cornerX, getMap(i, j) + '0');
         }
     }
-    
 
     wrefresh(window);
 }
 
 bool Raycaster::input() {
+    flushinp();
     int a = getch();
 
     if (a == 'w') {
         double tempX = posX + SPEED * cos(rot);
         double tempY = posY + SPEED * sin(rot);
-        if (getMap(int(tempX), int(tempY)) == 0) {
-            posX = tempX;
-            posY = tempY;
+
+        // check up and down
+        if (getMap(int(posX), int(posY + 1)) != 0) { // up
+            if (tempY > int(posY) + 0.8) {
+                posY = int(posY) + 0.8;
+            } else {
+                posY = tempY;
+            }
+        } else if (getMap(int(posX), int(posY - 1)) != 0) { // down
+            if (tempY < int(posY) + 0.2) {
+                posY = int(posY) + 0.2;
+            } else {
+                posY = tempY;
+            }
         }
+
+        // check left and right
+        if (getMap(int(posX - 1), int(posY)) != 0) { // left
+            if (tempX < int(posX) + 0.2) {
+                posX = int(posX) + 0.2;
+            } else {
+                posX = tempX;
+            }
+        } else if (getMap(int(posX + 1), int(posY)) != 0) { // right
+            if (tempX > int(posX) + 0.8) {
+                posX = int(posX) + 0.8;
+            } else {
+                posX = tempX;
+            }
+        }
+
+        // check corners
+        if (getMap(int(posX - 1), int(posY - 1)) != 0) { // lower left
+            if (tempX < int(posX) + 0.2 && tempY < int(posY) + 0.2) {
+                posX = int(posX) + 0.2;
+                posY = int(posY) + 0.2;
+            } else {
+                posX = tempX;
+                posY = tempY;
+            }
+        } else if (getMap(int(posX - 1), int(posY + 1)) != 0) { // upper left
+            if (tempX < int(posX) + 0.2 && tempY > int(posY) + 0.8) {
+                posX = int(posX) + 0.2;
+                posY = int(posY) + 0.8;
+            } else {
+                posX = tempX;
+                posY = tempY;
+            }
+        } else if (getMap(int(posX + 1), int(posY - 1)) != 0) { // lower right
+            if (tempX > int(posX) + 0.8 && tempY < int(posY) + 0.2) {
+                posX = int(posX) + 0.8;
+                posY = int(posY) + 0.2;
+            } else {
+                posX = tempX;
+                posY = tempY;
+            }
+        } else if (getMap(int(posX + 1), int(posY + 1)) != 0) { // upper right
+            if (tempX > int(posX) + 0.8 && tempY > int(posY) + 0.8) {
+                posX = int(posX) + 0.8;
+                posY = int(posY) + 0.8;
+            } else {
+                posX = tempX;
+                posY = tempY;
+            }
+        }
+
     } else if (a == 's') {
         double tempX = posX - SPEED * cos(rot);
         double tempY = posY - SPEED * sin(rot);

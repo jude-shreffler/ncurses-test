@@ -9,8 +9,11 @@
 
 #define NUMCOL 160
 #define NUMROW 48
-#define SPD 4
+#define SPD 3
 #define ASPD 2
+
+#define WALL_COLOR 4
+#define DOOR_COLOR 3
 
 class Raycaster {
     public:
@@ -29,8 +32,8 @@ class Raycaster {
     static double normalize(double angle);
     static int roundDownToEven(int toRound);
 
-    const double FPS = 60;
-    const double SPEED = SPD / FPS;
+    const double FPS = 10;
+    const double SPEED = SPD / FPS * (FPS / 60);
     const double ANG_SPEED = Raycaster::degToRad(ASPD); 
     const double FOV = 80;
     const int NUM_COLUMNS = NUMCOL;
